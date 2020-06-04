@@ -4,8 +4,8 @@ import itertools
 from tkinter import Tk
 
 from components import IO
-from connector import Connector, Connection, SharedLayer
-import modules
+from machine import Machine, Connection, SharedLayer
+import custom_machines
 
 def test_module(module, show_all):
     root = Tk()
@@ -24,45 +24,45 @@ def test_module(module, show_all):
     for i in range(num_outputs):
         outputs.append(IO())
 
-    con = Connector(root)
+    m = Machine(root)
     
     i = 0
     for input in inputs:
-        con.connect(Connection(input, module, el_to_input=i))
+        m.add_connection(Connection(input, module, comp_to_input=i))
         i += 1
 
     i = 0
     for output in outputs:
-        con.connect(Connection(module, output, el_from_output=i))
+        m.add_connection(Connection(module, output, comp_from_output=i))
         i += 1
 
     for comb in itertools.combinations(inputs, 2):
-        con.add_shared_layer(SharedLayer(comb[0], comb[1]))
+        m.add_shared_layer(SharedLayer(comb[0], comb[1]))
 
     for comb in itertools.combinations(outputs, 2):
-        con.add_shared_layer(SharedLayer(comb[0], comb[1]))
+        m.add_shared_layer(SharedLayer(comb[0], comb[1]))
 
-    con.draw()
+    m.draw()
     root.mainloop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--module', type=str, help="Specific Module to Test")
+    parser.add_argument('--machine', type=str, help="Specific Machine to Test")
     args = parser.parse_args()
 
-    if args.module is None:
-        for module in modules.__all__:
-            module_name = module
-            module = modules.__all__[module]
+    if args.machine is None:
+        for machine in custom_machines.__all__:
+            module_name = machine
+            machine = custom_machines.__all__[machine]
             print(f"{module_name}: show_all={False}")
-            test_module(module, False)
+            test_module(machine, False)
             print(f"{module_name}: show_all={True}")
-            test_module(module, True)
+            test_module(machine, True)
 
     else:
-        module = modules.__all__[args.module]
-        # print(f"{args.module}: show_all={False}")
-        # test_module(module, False)
-        print(f"{args.module}: show_all={True}")
-        test_module(module, True)
+        machine = custom_machines.__all__[args.machine]
+        # print(f"{args.machine}: show_all={False}")
+        # test_module(machine, False)
+        print(f"{args.machine}: show_all={True}")
+        test_module(machine, True)
         

@@ -1,5 +1,5 @@
 from components import IO, Replacer, Sorter, BlackBox
-from connector import Connection, SharedLayer
+from machine import Connection, SharedLayer
 
 
 ##############################################################################################################################
@@ -64,8 +64,8 @@ class Equals(BlackBox):
         self.connections = [
             Connection(r1, s1),
             Connection(r2, s1),
-            Connection(s1, not_block, el_from_output=1),
-            Connection(s1, not_block, el_from_output=2)
+            Connection(s1, not_block, comp_from_output=1),
+            Connection(s1, not_block, comp_from_output=2)
         ]
 
         self.shared_layers = [
@@ -124,11 +124,11 @@ class Max(BlackBox):
         self.connections = [
             Connection(r1, s1),
             Connection(r2, s1),
-            Connection(s1, r3, el_from_output=0),
-            Connection(s1, r4, el_from_output=2),
+            Connection(s1, r3, comp_from_output=0),
+            Connection(s1, r4, comp_from_output=2),
             Connection(r3, s2),
             Connection(r4, s2),
-            Connection(s1, s2, el_from_output=1)
+            Connection(s1, s2, comp_from_output=1)
         ]
 
 ##############################################################################################################################
@@ -210,10 +210,10 @@ class Sort_2(BlackBox):
         self.connections = [
             Connection(r1, s1),
             Connection(r2, s2),
-            Connection(s1, min_block, el_from_output=0, el_to_input=0),
-            Connection(s1, max_block, el_from_output=1, el_to_input=0),
-            Connection(s2, min_block, el_from_output=0, el_to_input=1),
-            Connection(s2, max_block, el_from_output=1, el_to_input=1),
+            Connection(s1, min_block, comp_from_output=0, comp_to_input=0),
+            Connection(s1, max_block, comp_from_output=1, comp_to_input=0),
+            Connection(s2, min_block, comp_from_output=0, comp_to_input=1),
+            Connection(s2, max_block, comp_from_output=1, comp_to_input=1),
         ]
 
         self.shared_layers = [
@@ -236,7 +236,7 @@ class Subtract(BlackBox):
 
         self.connections = [
             Connection(replacer1, sorter),
-            Connection(replacer2, sorter, el_to_input=1)
+            Connection(replacer2, sorter, comp_to_input=1)
         ]
 
         self.shared_layers = [
@@ -273,11 +273,9 @@ __all__ = {
     'LessThan': LessThan,
     'Max': Max,
     'Min': Min,
-    'Multiply': Multiply,
     'Not': Not,
     'Or': Or,
     'Sort_2': Sort_2,
     'Subtract': Subtract,
     'ToBool': ToBool
 }
-    
