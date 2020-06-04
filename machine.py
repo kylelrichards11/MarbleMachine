@@ -5,8 +5,7 @@ from PIL import Image
 import io
 
 from components import BlackBox
-
-GRID_SIZE = 25
+from globals import GRID_SIZE
 
 class Connection:
     """ Defines an ordered connection between two components
@@ -390,9 +389,6 @@ class Machine:
         None
         """
 
-        for comp in self.components:
-            print(f"{comp} : {self.components[comp]}")
-
         # Assign Layers
         self._create_layers()
 
@@ -448,7 +444,6 @@ class Machine:
         connections_drawn = []
         for pair in self.pairs:
             if pair not in connections_drawn:
-                print(f"Drawing {pair}")
                 comp_from = self.components[pair.comp_from_uuid]
                 comp_to = self.components[pair.comp_to_uuid]
                 x0, y0 = comp_from.get_output_coords(pair.comp_from_output)
