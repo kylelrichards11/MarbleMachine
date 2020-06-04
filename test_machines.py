@@ -7,7 +7,7 @@ from components import IO
 from machine import Machine, Connection, SharedLayer
 import custom_machines
 
-def test_machine(machine, show_all):
+def test_machine(machine, show_all, fname=''):
     root = Tk()
 
     machine = machine(show_all=show_all)
@@ -43,11 +43,14 @@ def test_machine(machine, show_all):
         m.add_shared_layer(SharedLayer(comb[0], comb[1]))
 
     m.draw()
+    if fname != '':
+        m.save(fname)
     root.mainloop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--machine', type=str, help="Specific Machine to Test")
+    parser.add_argument('--save', type=bool, help="Whether or not to save image")
     args = parser.parse_args()
 
     if args.machine is None:
@@ -64,5 +67,8 @@ if __name__ == "__main__":
         print(f"{args.machine}: show_all={False}")
         test_machine(machine, False)
         print(f"{args.machine}: show_all={True}")
-        test_machine(machine, True)
+        if args.save:
+            test_machine(machine, True, args.machine)
+        else:
+            test_machine(machine, True)
         
