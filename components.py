@@ -25,6 +25,9 @@ class BlackBox(Component):
         self.show_all = show_all
         self.shared_layers = []
 
+    def __str__(self):
+        return f"Black Box {self.name}"
+
     def draw(self, canvas, x, y, show_all=False):
         self.x = x
         self.y = y
@@ -72,6 +75,9 @@ class IO(Component):
         super().__init__()
         self.balls = balls
 
+    def __str__(self):
+        return "IO Component"
+
     def draw(self, canvas, x, y):
         self.x = x
         self.y = y
@@ -106,6 +112,9 @@ class Replacer(Component):
         self.inputs = inputs
         self.outputs = outputs
         self.width = (3 + max(len(inputs), len(outputs)))*GRID_SIZE
+
+    def __str__(self):
+        return "Replacer Component"
 
     def draw(self, canvas, x, y):
         self.x = x
@@ -164,6 +173,9 @@ class Sorter(Component):
         for output in outputs:
             total_outputs += len(output)
         self.width = max(self.height, (total_outputs + output_spaces)*GRID_SIZE)
+
+    def __str__(self):
+        return "Replacer Component"
     
     def draw(self, canvas, x, y):
         self.x = x
