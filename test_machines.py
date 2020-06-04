@@ -19,10 +19,10 @@ def test_machine(machine, show_all):
     outputs = []
 
     for i in range(num_inputs):
-        inputs.append(IO())
+        inputs.append(IO(name=f'input_{i}'))
 
     for i in range(num_outputs):
-        outputs.append(IO())
+        outputs.append(IO(name=f'output_{i}'))
 
     m = Machine(root)
     

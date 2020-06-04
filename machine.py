@@ -35,6 +35,10 @@ class Connection:
         self.comp_to_input = comp_to_input
         self.reverse = reverse
 
+    def __str__(self):
+        return f"From: {self.comp_from}, To: {self.comp_to}, From Output: {self.comp_from_output}, To Input: {self.comp_to_input}, Reverse: {self.reverse}"
+
+
 class SharedLayer:
     """ Defines the order of two components that must be in the same layer
 
@@ -82,6 +86,15 @@ class Pair:
 
     def __str__(self):
         return f"From: {self.comp_from_uuid}, To: {self.comp_to_uuid}, From Output: {self.comp_from_output}, To Input: {self.comp_to_input}, Reverse: {self.reverse}"
+
+    def __eq__(self, other):
+        return (
+            self.comp_from_uuid == other.comp_from_uuid 
+            and self.comp_to_uuid == other.comp_to_uuid 
+            and self.comp_from_output == other.comp_from_output
+            and self.comp_to_input == other.comp_to_input
+            and self.reverse == other.reverse
+        )
 
 class Machine:
     """ Defines a machine as a set of ordered connections and layers between components.
@@ -171,8 +184,9 @@ class Machine:
                 comp_from.outputs[comp_from_output][0], 
                 comp_to.inputs[comp_to_input][0], 
                 comp_to_input=comp_to.inputs[comp_to_input][1], 
-                comp_from_output=comp_from.outputs[comp_from_output][1])
-            )
+                comp_from_output=comp_from.outputs[comp_from_output][1],
+                reverse=reverse
+            ))
             for connection in comp_to.get_connections():
                 self.add_connection(connection)
         elif isinstance(comp_from, BlackBox):
@@ -182,15 +196,17 @@ class Machine:
                 comp_from.outputs[comp_from_output][0], 
                 comp_to, 
                 comp_to_input=comp_to_input, 
-                comp_from_output=comp_from.outputs[comp_from_output][1])
-            )
+                comp_from_output=comp_from.outputs[comp_from_output][1],
+                reverse=reverse
+            ))
         else:
             self.add_connection(Connection(
                 comp_from, 
                 comp_to.inputs[comp_to_input][0], 
                 comp_to_input=comp_to.inputs[comp_to_input][1], 
-                comp_from_output=comp_from_output)
-            )
+                comp_from_output=comp_from_output,
+                reverse=reverse
+            ))
             for connection in comp_to.get_connections():
                 self.add_connection(connection)
 
@@ -201,7 +217,9 @@ class Machine:
         from_uuid = comp_from.get_uuid()
         to_uuid = comp_to.get_uuid()
 
-        self.pairs.append(Pair(from_uuid, to_uuid, comp_from_output, comp_to_input, reverse))
+        pair = Pair(from_uuid, to_uuid, comp_from_output, comp_to_input, reverse)
+        if pair not in self.pairs:
+            self.pairs.append(pair)
 
     def _create_canvas(self, width, height):
         frame = Frame(self.root, width=width, height=height)
@@ -372,6 +390,9 @@ class Machine:
         None
         """
 
+        for comp in self.components:
+            print(f"{comp} : {self.components[comp]}")
+
         # Assign Layers
         self._create_layers()
 
@@ -379,7 +400,7 @@ class Machine:
         if canvas is None:
             canv_width, canv_height = self._get_canvas_dims()
             canv_width = max(1000, canv_width)
-            canv_height = max(1500, canv_height)
+            canv_height = max(5000, canv_height)
             assert(self.root is not None)
             canvas = self._create_canvas(canv_width, canv_height)
             middle_x = canv_width/2
@@ -420,23 +441,33 @@ class Machine:
         for layer in layer_widths:
             widths.append(layer_widths[layer])
         widest_layer = max(widths)
+
+        surround_left_gap = GRID_SIZE*2
+        surround_right_gap = GRID_SIZE*2
+
+        connections_drawn = []
         for pair in self.pairs:
-            comp_from = self.components[pair.comp_from_uuid]
-            comp_to = self.components[pair.comp_to_uuid]
-            x0, y0 = comp_from.get_output_coords(pair.comp_from_output)
-            x_final, y_final = comp_to.get_input_coords(pair.comp_to_input)
-            if pair.reverse:
-                if x0 <= middle_x:
-                    x_wide = middle_x - widest_layer/2 - GRID_SIZE*2
+            if pair not in connections_drawn:
+                print(f"Drawing {pair}")
+                comp_from = self.components[pair.comp_from_uuid]
+                comp_to = self.components[pair.comp_to_uuid]
+                x0, y0 = comp_from.get_output_coords(pair.comp_from_output)
+                x_final, y_final = comp_to.get_input_coords(pair.comp_to_input)
+                if pair.reverse:
+                    if x0 <= middle_x:
+                        x_wide = middle_x - widest_layer/2 - surround_left_gap
+                        surround_left_gap += GRID_SIZE
+                    else:
+                        x_wide = middle_x + widest_layer/2 + surround_right_gap
+                        surround_right_gap += GRID_SIZE
+                    canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
+                    canvas.create_line(x0, y0 + GRID_SIZE, x_wide, y0 + GRID_SIZE)
+                    canvas.create_line(x_wide, y0 + GRID_SIZE, x_wide, y_final - GRID_SIZE)
+                    canvas.create_line(x_wide, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
+                    canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
                 else:
-                    x_wide = middle_x + widest_layer/2 + GRID_SIZE*2
-                canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
-                canvas.create_line(x0, y0 + GRID_SIZE, x_wide, y0 + GRID_SIZE)
-                canvas.create_line(x_wide, y0 + GRID_SIZE, x_wide, y_final - GRID_SIZE)
-                canvas.create_line(x_wide, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
-                canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
-            else:
-                canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
+                    canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
+                connections_drawn.append(pair)
 
         self.canvas = canvas
 

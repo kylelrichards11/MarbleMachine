@@ -8,20 +8,20 @@ class And(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'And'
     
-        replacer1 = Replacer(['all'], ['red'])
-        replacer2 = Replacer(['all'], ['blue'])
-        input = IO(balls=['dark green'])
-        sorter = Sorter([('red', 'blue', 'dark green')])
-        replacer3 = Replacer(['red', 'blue', 'dark green'], ['red'])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        input = IO(balls=['dark green'], name=f'{self.name} input')
+        s1 = Sorter([('red', 'blue', 'dark green')], name=f'{self.name} s1')
+        r3 = Replacer(['red', 'blue', 'dark green'], ['red'], name=f'{self.name} r3')
 
-        self.inputs = [(replacer1, 0), (replacer2, 0)]
-        self.outputs = [(replacer3, 0)]
+        self.inputs = [(r1, 0), (r2, 0)]
+        self.outputs = [(r3, 0)]
 
         self.connections = [
-            Connection(replacer1, sorter),
-            Connection(replacer2, sorter),
-            Connection(input, sorter),
-            Connection(sorter, replacer3)
+            Connection(r1, s1),
+            Connection(r2, s1),
+            Connection(input, s1),
+            Connection(s1, r3)
         ]
 
 ##############################################################################################################################
@@ -30,21 +30,16 @@ class Decrement(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Decrement'
         
-        input = IO(balls=['blue'])
-        replacer = Replacer(['all'], ['red'])
-        sorter = Sorter([('red', 'blue'), ('red',)])
+        input = IO(balls=['blue'], name=f'{self.name} input')
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        s1 = Sorter([('red', 'blue'), ('red',)], name=f'{self.name} s1')
 
-        self.inputs = [(replacer, 0)]
-        self.outputs = [(sorter, 1)]
-
-        self.connections = [
-            ((replacer, 0), (sorter, 0)),
-            ((input, 0), (sorter, 0))
-        ]
+        self.inputs = [(r1, 0)]
+        self.outputs = [(s1, 1)]
 
         self.connections = [
-            Connection(replacer, sorter),
-            Connection(input, sorter)
+            Connection(r1, s1),
+            Connection(input, s1)
         ]
 
 ##############################################################################################################################
@@ -53,9 +48,9 @@ class Equals(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Equals'
 
-        r1 = Replacer(['all'], ['red'])
-        r2 = Replacer(['all'], ['blue'])
-        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)], name=f'{self.name} s1')
         not_block = Not(show_all=show_all)
 
         self.inputs = [(r1, 0), (r2, 0)]
@@ -111,12 +106,12 @@ class Max(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Max'
 
-        r1 = Replacer(['all'], ['red'])
-        r2 = Replacer(['all'], ['blue'])
-        r3 = Replacer(['red', 'blue'], ['red'])
-        r4 = Replacer(['blue'], ['red'])
-        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)])
-        s2 = Sorter([('red',)])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        r3 = Replacer(['red', 'blue'], ['red'], name=f'{self.name} r3')
+        r4 = Replacer(['blue'], ['red'], name=f'{self.name} r4')
+        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)], name=f'{self.name} s1')
+        s2 = Sorter([('red',)], name=f'{self.name} s2')
 
         self.inputs = [(r1, 0), (r2, 0)]
         self.outputs = [(s2, 0)]
@@ -137,10 +132,10 @@ class Min(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Min'
 
-        r1 = Replacer(['all'], ['red'])
-        r2 = Replacer(['all'], ['blue'])
-        r3 = Replacer(['red', 'blue'], ['red'])
-        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        r3 = Replacer(['red', 'blue'], ['red'], name=f'{self.name} r3')
+        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)], name=f'{self.name} s1')
 
         self.inputs = [(r1, 0), (r2, 0)]
         self.outputs = [(r3, 0)]
@@ -152,21 +147,52 @@ class Min(BlackBox):
         ]
 
 ##############################################################################################################################
+class Multiply(BlackBox):
+    def __init__(self, show_all=False):
+        super().__init__(show_all=show_all)
+        
+        self.name = 'Multiply'
+
+        sort2 = Sort_2(show_all=show_all)
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        s1 = Sorter([('red', 'blue'), ('blue',)], name=f'{self.name} s1')
+        dec = Decrement(show_all=show_all)
+        r3 = Replacer(['red', 'blue'], ['red', 'blue', 'dark green'], name=f'{self.name} r3')
+        s2 = Sorter([('red',), ('blue',), ('dark green',)], name=f'{self.name} s2')
+
+        self.inputs = [(sort2, 0), (sort2, 1)]
+        self.outputs = [(s2, 2)]
+        
+        self.connections = [
+            Connection(sort2, r1, comp_from_output=0),
+            Connection(sort2, r2, comp_from_output=1),
+            Connection(r1, s1),
+            Connection(r2, s1),
+            Connection(s1, r3, comp_from_output=0),
+            Connection(s1, dec, comp_from_output=1),
+            Connection(dec, sort2, comp_to_input=1, reverse=True),
+            Connection(r3, s2),
+            Connection(s2, sort2, comp_from_output=0, comp_to_input=0, reverse=True),
+            Connection(s2, dec, comp_from_output=1)
+        ]
+
+##############################################################################################################################
 class Not(BlackBox):
     def __init__(self, show_all=False):
         super().__init__(show_all=show_all)
         self.name = 'Not'
 
-        replacer = Replacer(['all'], ['red'])
-        input = IO(balls=['blue'])
-        sorter = Sorter([('red', 'blue'), ('blue',)])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        input = IO(balls=['blue'], name=f'{self.name} input')
+        s1 = Sorter([('red', 'blue'), ('blue',)], name=f'{self.name} s1')
 
-        self.inputs = [(replacer, 0)]
-        self.outputs = [(sorter, 1)]
+        self.inputs = [(r1, 0)]
+        self.outputs = [(s1, 1)]
 
         self.connections = [
-            Connection(replacer, sorter),
-            Connection(input, sorter)
+            Connection(r1, s1),
+            Connection(input, s1)
         ]
 
 ##############################################################################################################################
@@ -175,20 +201,20 @@ class Or(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Or'
 
-        replacer1 = Replacer(['all'], ['red'])
-        replacer2 = Replacer(['all'], ['red'])
-        input = IO(balls=['blue'])
-        sorter = Sorter([('red', 'blue')])
-        replacer3 = Replacer(['red', 'blue'], ['red'])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['red'], name=f'{self.name} r2')
+        input = IO(balls=['blue'], name=f'{self.name} input')
+        s1 = Sorter([('red', 'blue')], name=f'{self.name} s1')
+        r3 = Replacer(['red', 'blue'], ['red'], name=f'{self.name} r3')
 
-        self.inputs = [(replacer1, 0), (replacer2, 0)]
-        self.outputs = [(replacer3, 0)]
+        self.inputs = [(r1, 0), (r2, 0)]
+        self.outputs = [(r3, 0)]
 
         self.connections = [
-            Connection(replacer1, sorter),
-            Connection(replacer2, sorter),
-            Connection(input, sorter),
-            Connection(sorter, replacer3)
+            Connection(r1, s1),
+            Connection(r2, s1),
+            Connection(input, s1),
+            Connection(s1, r3)
         ]
 
 ##############################################################################################################################
@@ -197,10 +223,10 @@ class Sort_2(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Sort 2'
 
-        r1 = Replacer(['all'], ['red', 'blue'])
-        r2 = Replacer(['all'], ['red', 'blue'])
-        s1 = Sorter([('red',), ('blue',)])
-        s2 = Sorter([('red',), ('blue',)])
+        r1 = Replacer(['all'], ['red', 'blue'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['red', 'blue'], name=f'{self.name} r2')
+        s1 = Sorter([('red',), ('blue',)], name=f'{self.name} s1')
+        s2 = Sorter([('red',), ('blue',)], name=f'{self.name} s2')
         min_block = Min(show_all=show_all)
         max_block = Max(show_all=show_all)
 
@@ -227,20 +253,20 @@ class Subtract(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'Subtract'
 
-        replacer1 = Replacer(['all'], ['red'])
-        replacer2 = Replacer(['all'], ['blue'])
-        sorter = Sorter([('red', 'blue'), ('red',), ('blue',)])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
+        s1 = Sorter([('red', 'blue'), ('red',), ('blue',)], name=f'{self.name} s1')
 
-        self.inputs = [(replacer1, 0), (replacer2, 0)]
-        self.outputs = [(sorter, 1)]
+        self.inputs = [(r1, 0), (r2, 0)]
+        self.outputs = [(s1, 1)]
 
         self.connections = [
-            Connection(replacer1, sorter),
-            Connection(replacer2, sorter, comp_to_input=1)
+            Connection(r1, s1),
+            Connection(r2, s1, comp_to_input=1)
         ]
 
         self.shared_layers = [
-            SharedLayer(replacer1, replacer2)
+            SharedLayer(r1, r2)
         ]
 
 ##############################################################################################################################
@@ -249,10 +275,10 @@ class ToBool(BlackBox):
         super().__init__(show_all=show_all)
         self.name = 'To Bool'
 
-        r1 = Replacer(['all'], ['red'])
-        io1 = IO(balls=['blue'])
-        s1 = Sorter([('red', 'blue')])
-        r2 = Replacer(['red', 'blue'], ['red'])
+        r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
+        io1 = IO(balls=['blue'], name=f'{self.name} io1')
+        s1 = Sorter([('red', 'blue')], name=f'{self.name} s1')
+        r2 = Replacer(['red', 'blue'], ['red'], name=f'{self.name} r2')
 
         self.inputs = [(r1, 0)]
         self.outputs = [(r2, 0)]
@@ -273,6 +299,7 @@ __all__ = {
     'LessThan': LessThan,
     'Max': Max,
     'Min': Min,
+    'Multiply': Multiply,
     'Not': Not,
     'Or': Or,
     'Sort_2': Sort_2,

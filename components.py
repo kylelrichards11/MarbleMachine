@@ -6,7 +6,8 @@ GRID_SIZE = 25
 ##############################################################################################################################
 class Component:
     """ Super class for all Components """
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.uuid = -1
         self.x = -1
         self.y = -1
@@ -20,8 +21,8 @@ class Component:
 ##############################################################################################################################
 ##############################################################################################################################
 class BlackBox(Component):
-    def __init__(self, show_all=False):
-        super().__init__()
+    def __init__(self, show_all=False, name=''):
+        super().__init__(name)
         self.show_all = show_all
         self.shared_layers = []
 
@@ -71,12 +72,12 @@ class BlackBox(Component):
 
 ##############################################################################################################################
 class IO(Component):
-    def __init__(self, balls=[]):
-        super().__init__()
+    def __init__(self, balls=[], name=''):
+        super().__init__(name)
         self.balls = balls
 
     def __str__(self):
-        return "IO Component"
+        return f"IO {self.name}"
 
     def draw(self, canvas, x, y):
         self.x = x
@@ -105,8 +106,8 @@ class IO(Component):
 
 ##############################################################################################################################
 class Replacer(Component):
-    def __init__(self, inputs, outputs):
-        super().__init__()
+    def __init__(self, inputs, outputs, name=''):
+        super().__init__(name)
         assert(len(inputs) > 0)
         assert(len(outputs) > 0)
         self.inputs = inputs
@@ -114,7 +115,7 @@ class Replacer(Component):
         self.width = (3 + max(len(inputs), len(outputs)))*GRID_SIZE
 
     def __str__(self):
-        return "Replacer Component"
+        return f"Replacer {self.name}"
 
     def draw(self, canvas, x, y):
         self.x = x
@@ -161,8 +162,8 @@ class Replacer(Component):
 
 ##############################################################################################################################
 class Sorter(Component):
-    def __init__(self, outputs):
-        super().__init__()
+    def __init__(self, outputs, name=''):
+        super().__init__(name)
         self.outputs = outputs
         self.height = 3*GRID_SIZE
 
@@ -175,7 +176,7 @@ class Sorter(Component):
         self.width = max(self.height, (total_outputs + output_spaces)*GRID_SIZE)
 
     def __str__(self):
-        return "Replacer Component"
+        return f"Sorter {self.name}"
     
     def draw(self, canvas, x, y):
         self.x = x
