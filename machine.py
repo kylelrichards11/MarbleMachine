@@ -156,7 +156,7 @@ class Machine:
                         self._change_layer(shared_el, new_layer, self.comp_layers[shared_el])
             # Change future components
             for pair in self.pairs:
-                if pair.comp_from_uuid == uuid:
+                if pair.comp_from_uuid == uuid and not pair.reverse:
                     if pair.comp_to_uuid in self.comp_layers:
                         self._change_layer(pair.comp_to_uuid, new_layer+1, self.comp_layers[pair.comp_to_uuid])
 
@@ -433,8 +433,8 @@ class Machine:
                 canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
                 canvas.create_line(x0, y0 + GRID_SIZE, x_wide, y0 + GRID_SIZE)
                 canvas.create_line(x_wide, y0 + GRID_SIZE, x_wide, y_final - GRID_SIZE)
-                canvas.create_line(x_wide, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE, arrow=LAST)
-                canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final)
+                canvas.create_line(x_wide, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
+                canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
             else:
                 canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
 
