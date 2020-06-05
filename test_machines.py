@@ -34,6 +34,7 @@ def test_machine(machine, show_all, fname=''):
     i = 0
     for output in outputs:
         m.add_connection(Connection(machine, output, comp_from_output=i))
+        m.specify_output(output)
         i += 1
 
     for comb in itertools.combinations(inputs, 2):

@@ -4,7 +4,7 @@ from tkinter import *
 from PIL import Image
 import io
 
-from components import BlackBox
+from components import BlackBox, IO
 from globals import GRID_SIZE
 
 class Connection:
@@ -109,6 +109,7 @@ class Machine:
         self.comp_layers = {}
         self.components = {}
         self.layers = {}
+        self.outputs = []
         self.pairs = []
         self.root = root
         self.shared_layer_orders = {}
@@ -263,6 +264,25 @@ class Machine:
                 if to_uuid in self.shared_layers:
                     new_layer_to = self._get_shared_layer(to_uuid, new_layer_to)
                 self._add_to_layers(to_uuid, new_layer_to)
+
+        # Make sure outputs are alone in the last layer
+        output_uuids = []
+        for output in self.outputs:
+            output_uuids.append(output.get_uuid())
+
+        last_layer = max(self.layers.keys())
+        make_layer = False
+        for comp_uuid in self.layers[last_layer]:
+            if comp_uuid not in output_uuids:
+                make_layer = True
+                break
+
+        if make_layer:
+            last_layer = last_layer + 1
+
+        for comp_uuid in output_uuids:
+            self._change_layer(comp_uuid, last_layer, self.comp_layers[comp_uuid])
+
 
     def _create_uuid(self, comp):
         assert(comp.get_uuid() == -1)
@@ -481,3 +501,18 @@ class Machine:
         self.canvas.postscript(file=f'{filename}.eps')
         img = Image.open(f'{filename}.eps')
         img.save(f'{filename}.png', 'png')
+
+    def specify_output(self, io_comp):
+        """ Specifies a component as an output IO to the machine. This allows it to make sure that all the outputs are in the last layer
+
+        Parameters
+        ----------
+        io_comp (IO): The component to specify as an output
+
+        Returns
+        -------
+
+        None
+        """
+        assert(isinstance(io_comp, IO))
+        self.outputs.append(io_comp)
