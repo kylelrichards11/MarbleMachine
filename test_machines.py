@@ -51,7 +51,7 @@ def test_machine(machine, show_all, fname=''):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--machine', type=str, help="Specific Machine to Test")
-    parser.add_argument('--save', type=bool, help="Whether or not to save image")
+    parser.add_argument('--save', action='store_true', help="Whether or not to save image")
     args = parser.parse_args()
 
     if args.machine is None:
