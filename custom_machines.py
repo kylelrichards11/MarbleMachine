@@ -28,7 +28,7 @@ class And(BlackBox):
 class Decrement(BlackBox):
     def __init__(self, show_all=False):
         super().__init__(show_all=show_all)
-        self.name = 'Decrement'
+        self.name = 'Dec'
         
         input = IO(balls=['blue'], name=f'{self.name} input')
         r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
@@ -153,11 +153,11 @@ class Multiply(BlackBox):
         
         self.name = 'Multiply'
 
-        sort2 = Sort_2(show_all=show_all)
+        sort2 = Sort_2(show_all=False)
         r1 = Replacer(['all'], ['red'], name=f'{self.name} r1')
         r2 = Replacer(['all'], ['blue'], name=f'{self.name} r2')
         s1 = Sorter([('red', 'blue'), ('blue',)], name=f'{self.name} s1')
-        dec = Decrement(show_all=show_all)
+        dec = Decrement(show_all=False)
         r3 = Replacer(['red', 'blue'], ['red', 'blue', 'dark green'], name=f'{self.name} r3')
         s2 = Sorter([('red',), ('blue',), ('dark green',)], name=f'{self.name} s2')
 
