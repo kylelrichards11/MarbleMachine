@@ -17,6 +17,20 @@ class Component:
     def assign_uuid(self, uuid):
         self.uuid = uuid
 
+    def collides(self, x0, y0, x1, y1):
+        if self.x > -1 and self.y > -1:
+            x_left = self.x - self.get_width()/2
+            x_right = self.x + self.get_width()/2
+            y_top = self.y - self.get_height()/2
+            y_bot = self.y + self.get_height()/2
+
+            if x0 < x_left and x1 > x_left and y0 < y_top and y1 > y_bot:
+                return True
+            if x1 < x_left and x0 > x_left and y1 < y_top and y0 > y_bot:
+                return True
+            if x0 > x_left and x1 < x_right and y0 < y_top and y1 > y_bot:
+                return True
+
 ##############################################################################################################################
 ##############################################################################################################################
 class BlackBox(Component):

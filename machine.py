@@ -5,7 +5,7 @@ from PIL import Image
 import io
 
 from components import BlackBox, IO
-from globals import GRID_SIZE
+from globals import GRID_SIZE, LAYER_GAP
 
 class Connection:
     """ Defines an ordered connection between two components
@@ -289,6 +289,84 @@ class Machine:
         comp.assign_uuid(self.uuid_counter)
         self.uuid_counter += 1
 
+    def _change_layer_edges(self, layer_edges, start_layer, end_layer, direction, edge):
+        assert(direction == 'left' or direction == 'right')
+        for layer in range(start_layer, end_layer+1):
+            if direction == 'left':
+                layer_edges[layer][direction] = edge - GRID_SIZE
+            else:
+                layer_edges[layer][direction] = edge + GRID_SIZE
+    
+    def _detect_collisions(self, x0, y0, x1, y1):
+        for comp_uuid in self.components:
+            if self.components[comp_uuid].collides(x0, y0, x1, y1):
+                return True
+        return False
+
+    def _draw_connection_around(self, canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final):
+        if x0 <= middle_x:
+            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, 'left') - GRID_SIZE
+            self._change_layer_edges(layer_edges, start_layer, end_layer, 'left', widest_edge)
+        else:
+            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, 'right') + GRID_SIZE
+            self._change_layer_edges(layer_edges, start_layer, end_layer, 'right', widest_edge)
+        canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
+        canvas.create_line(x0, y0 + GRID_SIZE, widest_edge, y0 + GRID_SIZE)
+        canvas.create_line(widest_edge, y0 + GRID_SIZE, widest_edge, y_final - GRID_SIZE)
+        canvas.create_line(widest_edge, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
+        canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
+
+    def _draw_connections(self, canvas, middle_x):
+        layer_widths = self._get_layer_widths()
+
+        layer_edges = {}
+        for layer in self.layers:
+            layer_edges[layer] = {'left' : middle_x - layer_widths[layer]/2, 'right' : middle_x + layer_widths[layer]/2}
+
+        connections_drawn = []
+        for pair in self.pairs:
+            if pair not in connections_drawn:
+                comp_from = self.components[pair.comp_from_uuid]
+                comp_to = self.components[pair.comp_to_uuid]
+                x0, y0 = comp_from.get_output_coords(pair.comp_from_output)
+                x_final, y_final = comp_to.get_input_coords(pair.comp_to_input)
+                if pair.reverse:
+                    start_layer = self.comp_layers[pair.comp_from_uuid]
+                    end_layer = self.comp_layers[pair.comp_to_uuid]
+                    self._draw_connection_around(canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final)
+                else:
+                    if self._detect_collisions(x0, y0, x_final, y_final):
+                        start_layer = self.comp_layers[pair.comp_from_uuid]
+                        end_layer = self.comp_layers[pair.comp_to_uuid]
+                        self._draw_connection_around(canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final)
+                    else:
+                        canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
+                connections_drawn.append(pair)
+
+    def _draw_layers(self, canvas, middle_x, start_y):
+        layer_widths = self._get_layer_widths()
+        layer_heights = self._get_layer_heights()
+        for layer in sorted(self.layers.keys()):
+            start_x = middle_x - layer_widths[layer]/2
+            y = start_y + layer_heights[layer]/2
+            if len(self.layers[layer]) == 1 and layer != sorted(self.layers.keys())[0]:
+                uuid = self.layers[layer][0]
+                comp = self.components[uuid]
+                prev_output_xs = []
+                for pair in self.pairs:
+                    if pair.comp_to_uuid == uuid and not pair.reverse:
+                        prev_output_xs.append(self.components[pair.comp_from_uuid].get_output_coords(pair.comp_from_output)[0])
+                avg_x = mean(prev_output_xs)
+                comp.draw(canvas, avg_x, y)
+            else:
+                uuids = self._generate_layer_order(self.layers[layer])
+                for uuid in uuids:
+                    comp = self.components[uuid]
+                    x = start_x+comp.get_width()/2
+                    comp.draw(canvas, x, y)
+                    start_x += comp.get_width() + LAYER_GAP
+            start_y += layer_heights[layer] + LAYER_GAP
+
     def _generate_layer_order(self, orig_layer_uuids):
         order = []
         while(len(orig_layer_uuids) > 0):
@@ -332,8 +410,8 @@ class Machine:
             for uuid in self.layers[layer]:
                 comp = self.components[uuid]
                 width += comp.get_width()
-                width += 2*GRID_SIZE
-            width -= 2*GRID_SIZE
+                width += LAYER_GAP
+            width -= LAYER_GAP
             widths[layer] = width
         return widths
 
@@ -345,6 +423,23 @@ class Machine:
                     self._change_layer(shared_el, new_layer, self.comp_layers[shared_el])
                 shared_layer = self.comp_layers[shared_el]
         return shared_layer
+
+    def _get_widest_layer_edge(self, layer_edges, start_layer, end_layer, direction):
+        assert(direction == 'left' or direction == 'right')
+        if start_layer > end_layer:
+            temp_start = start_layer
+            start_layer = end_layer
+            end_layer = temp_start
+
+        if direction == 'left':
+            widest = 1000000
+            for layer in range(start_layer, end_layer + 1):
+                widest = min(widest, layer_edges[layer][direction])
+        else:
+            widest = 0
+            for layer in range(start_layer, end_layer + 1):
+                widest = max(widest, layer_edges[layer][direction])
+        return widest
 
     # Public Methods
     def add_connection(self, connection):
@@ -420,70 +515,16 @@ class Machine:
             assert(self.root is not None)
             canvas = self._create_canvas(canv_width, canv_height)
             middle_x = canv_width/2
-            start_y = 2*GRID_SIZE
+            start_y = LAYER_GAP
         else:
             assert(x > 0)
             assert(y > 0)
             _, total_height = self._calc_total_size()
             middle_x = x
-            start_y = y - total_height/2 - 2*GRID_SIZE
+            start_y = y - total_height/2 - LAYER_GAP
 
-        # Draw Layers
-        layer_widths = self._get_layer_widths()
-        layer_heights = self._get_layer_heights()
-        for layer in sorted(self.layers.keys()):
-            start_x = middle_x - layer_widths[layer]/2
-            y = start_y + layer_heights[layer]/2
-            if len(self.layers[layer]) == 1 and layer != sorted(self.layers.keys())[0]:
-                uuid = self.layers[layer][0]
-                comp = self.components[uuid]
-                prev_output_xs = []
-                for pair in self.pairs:
-                    if pair.comp_to_uuid == uuid and not pair.reverse:
-                        prev_output_xs.append(self.components[pair.comp_from_uuid].get_output_coords(pair.comp_from_output)[0])
-                avg_x = mean(prev_output_xs)
-                comp.draw(canvas, avg_x, y)
-            else:
-                uuids = self._generate_layer_order(self.layers[layer])
-                for uuid in uuids:
-                    comp = self.components[uuid]
-                    x = start_x+comp.get_width()/2
-                    comp.draw(canvas, x, y)
-                    start_x += comp.get_width() + 2*GRID_SIZE
-            start_y += layer_heights[layer] + 2*GRID_SIZE
-
-        # Draw Connections
-        widths = []
-        for layer in layer_widths:
-            widths.append(layer_widths[layer])
-        widest_layer = max(widths)
-
-        surround_left_gap = GRID_SIZE*2
-        surround_right_gap = GRID_SIZE*2
-
-        connections_drawn = []
-        for pair in self.pairs:
-            if pair not in connections_drawn:
-                comp_from = self.components[pair.comp_from_uuid]
-                comp_to = self.components[pair.comp_to_uuid]
-                x0, y0 = comp_from.get_output_coords(pair.comp_from_output)
-                x_final, y_final = comp_to.get_input_coords(pair.comp_to_input)
-                if pair.reverse:
-                    if x0 <= middle_x:
-                        x_wide = middle_x - widest_layer/2 - surround_left_gap
-                        surround_left_gap += GRID_SIZE
-                    else:
-                        x_wide = middle_x + widest_layer/2 + surround_right_gap
-                        surround_right_gap += GRID_SIZE
-                    canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
-                    canvas.create_line(x0, y0 + GRID_SIZE, x_wide, y0 + GRID_SIZE)
-                    canvas.create_line(x_wide, y0 + GRID_SIZE, x_wide, y_final - GRID_SIZE)
-                    canvas.create_line(x_wide, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
-                    canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
-                else:
-                    canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
-                connections_drawn.append(pair)
-
+        self._draw_layers(canvas, middle_x, start_y)
+        self._draw_connections(canvas, middle_x)
         self.canvas = canvas
 
     def save(self, filename):
