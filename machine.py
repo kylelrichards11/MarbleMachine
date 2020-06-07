@@ -154,8 +154,8 @@ class Machine:
         for layer in heights:
             total_height += heights[layer]
             if heights[layer] > 0:
-                total_height += 2*GRID_SIZE
-        total_height -= 2*GRID_SIZE
+                total_height += LAYER_GAP
+        total_height -= LAYER_GAP
         return max_width, total_height
 
     def _change_layer(self, uuid, new_layer, old_layer):
@@ -303,18 +303,24 @@ class Machine:
                 return True
         return False
 
-    def _draw_connection_around(self, canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final):
+    def _draw_connection_around(self, canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final):
         if x0 <= middle_x:
-            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, 'left') - GRID_SIZE
-            self._change_layer_edges(layer_edges, start_layer, end_layer, 'left', widest_edge)
+            direction = 'left'
+            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, direction) - GRID_SIZE
+            self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
         else:
-            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, 'right') + GRID_SIZE
-            self._change_layer_edges(layer_edges, start_layer, end_layer, 'right', widest_edge)
-        canvas.create_line(x0, y0, x0, y0 + GRID_SIZE)
-        canvas.create_line(x0, y0 + GRID_SIZE, widest_edge, y0 + GRID_SIZE)
-        canvas.create_line(widest_edge, y0 + GRID_SIZE, widest_edge, y_final - GRID_SIZE)
-        canvas.create_line(widest_edge, y_final - GRID_SIZE, x_final, y_final - GRID_SIZE)
-        canvas.create_line(x_final, y_final - GRID_SIZE, x_final, y_final, arrow=LAST)
+            direction = 'right'
+            widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, direction) + GRID_SIZE
+            self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
+        above_y = 1/(layer_horizontals[end_layer]['above'][direction] + 1)*LAYER_GAP/2
+        below_y = 1/(layer_horizontals[start_layer]['below'][direction] + 1)*LAYER_GAP/2
+        layer_horizontals[end_layer]['above'][direction] += 1
+        layer_horizontals[start_layer]['below'][direction] += 1
+        canvas.create_line(x0, y0, x0, y0 + below_y)
+        canvas.create_line(x0, y0 + below_y, widest_edge, y0 + below_y)
+        canvas.create_line(widest_edge, y0 + below_y, widest_edge, y_final - above_y)
+        canvas.create_line(widest_edge, y_final - above_y, x_final, y_final - above_y)
+        canvas.create_line(x_final, y_final - above_y, x_final, y_final, arrow=LAST)
 
     def _draw_connections(self, canvas, middle_x):
         layer_widths = self._get_layer_widths()
@@ -322,6 +328,10 @@ class Machine:
         layer_edges = {}
         for layer in self.layers:
             layer_edges[layer] = {'left' : middle_x - layer_widths[layer]/2, 'right' : middle_x + layer_widths[layer]/2}
+
+        layer_horizontals = {}
+        for layer in self.layers:
+            layer_horizontals[layer] = {'above' : {'left' : 0, 'right' : 0}, 'below' : {'left' : 0, 'right' : 0}}
 
         connections_drawn = []
         for pair in self.pairs:
@@ -333,12 +343,12 @@ class Machine:
                 if pair.reverse:
                     start_layer = self.comp_layers[pair.comp_from_uuid]
                     end_layer = self.comp_layers[pair.comp_to_uuid]
-                    self._draw_connection_around(canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final)
+                    self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final)
                 else:
                     if self._detect_collisions(x0, y0, x_final, y_final):
                         start_layer = self.comp_layers[pair.comp_from_uuid]
                         end_layer = self.comp_layers[pair.comp_to_uuid]
-                        self._draw_connection_around(canvas, middle_x, layer_edges, start_layer, end_layer, x0, y0, x_final, y_final)
+                        self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final)
                     else:
                         canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
                 connections_drawn.append(pair)
@@ -356,7 +366,10 @@ class Machine:
                 for pair in self.pairs:
                     if pair.comp_to_uuid == uuid and not pair.reverse:
                         prev_output_xs.append(self.components[pair.comp_from_uuid].get_output_coords(pair.comp_from_output)[0])
-                avg_x = mean(prev_output_xs)
+                if len(prev_output_xs) == 0:
+                    avg_x = middle_x
+                else:
+                    avg_x = mean(prev_output_xs)
                 comp.draw(canvas, avg_x, y)
             else:
                 uuids = self._generate_layer_order(self.layers[layer])
@@ -433,11 +446,11 @@ class Machine:
 
         if direction == 'left':
             widest = 1000000
-            for layer in range(start_layer, end_layer + 1):
+            for layer in range(start_layer, end_layer):
                 widest = min(widest, layer_edges[layer][direction])
         else:
             widest = 0
-            for layer in range(start_layer, end_layer + 1):
+            for layer in range(start_layer, end_layer):
                 widest = max(widest, layer_edges[layer][direction])
         return widest
 
@@ -511,7 +524,7 @@ class Machine:
         if canvas is None:
             canv_width, canv_height = self._get_canvas_dims()
             canv_width = max(1000, canv_width)
-            canv_height = max(5000, canv_height)
+            canv_height = max(10000, canv_height)
             assert(self.root is not None)
             canvas = self._create_canvas(canv_width, canv_height)
             middle_x = canv_width/2
