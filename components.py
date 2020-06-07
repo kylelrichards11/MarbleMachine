@@ -88,7 +88,7 @@ class IO(Component):
     def __init__(self, balls=[], name=''):
         super().__init__(name)
         self.balls = balls
-        assert(len(balls) < 8)
+        assert(len(balls) < 9)
         self.ball_size = GRID_SIZE/2
 
     def __str__(self):
@@ -97,7 +97,7 @@ class IO(Component):
     def _get_ball_coords(self, x, y, ball):
         if ball in [0, 3, 6]:
             ball_x = x
-        elif ball == 1 or ball == 4:
+        elif ball == 1 or ball == 4 or ball == 7:
             ball_x = x - GRID_SIZE
         elif ball == 2 or ball == 5:
             ball_x = x + GRID_SIZE
@@ -112,6 +112,8 @@ class IO(Component):
             ball_y = y
         elif ball == 6:
             ball_y = y - self.ball_size
+        elif ball == 7:
+            ball_y = y - GRID_SIZE
 
         return ball_x, ball_y
 
