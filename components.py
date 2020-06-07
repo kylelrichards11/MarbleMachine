@@ -88,18 +88,42 @@ class IO(Component):
     def __init__(self, balls=[], name=''):
         super().__init__(name)
         self.balls = balls
+        assert(len(balls) < 8)
+        self.ball_size = GRID_SIZE/2
 
     def __str__(self):
         return f"IO {self.name}"
+
+    def _get_ball_coords(self, x, y, ball):
+        if ball in [0, 3, 6]:
+            ball_x = x
+        elif ball == 1 or ball == 4:
+            ball_x = x - GRID_SIZE
+        elif ball == 2 or ball == 5:
+            ball_x = x + GRID_SIZE
+
+        if ball == 0:
+            ball_y = y + 2*GRID_SIZE - self.ball_size
+        elif ball == 1 or ball == 2:
+            ball_y = y + GRID_SIZE
+        elif ball == 3:
+            ball_y = y + self.ball_size
+        elif ball == 4 or ball == 5:
+            ball_y = y
+        elif ball == 6:
+            ball_y = y - self.ball_size
+
+        return ball_x, ball_y
 
     def draw(self, canvas, x, y):
         self.x = x
         self.y = y
         Circle(2*GRID_SIZE).draw(canvas, x, y)
-        ball_x = x
-        ball_y = y + 2*GRID_SIZE - GRID_SIZE/2
-        for ball in self.balls:
-            Circle(GRID_SIZE/2, ball, ball).draw(canvas, ball_x, ball_y)
+        ball_i = 0
+        for ball_color in self.balls:
+            ball_x, ball_y = self._get_ball_coords(x, y, ball_i)
+            Circle(self.ball_size, ball_color, ball_color).draw(canvas, ball_x, ball_y)
+            ball_i += 1
 
     def get_width(self):
         return 4*GRID_SIZE
