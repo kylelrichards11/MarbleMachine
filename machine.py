@@ -173,6 +173,17 @@ class Machine:
                     if pair.comp_to_uuid in self.comp_layers:
                         self._change_layer(pair.comp_to_uuid, new_layer+1, self.comp_layers[pair.comp_to_uuid])
 
+    def _change_layer_edges(self, layer_edges, start_layer, end_layer, direction, edge):
+        assert(direction == 'left' or direction == 'right')
+
+        for layer in range(start_layer, end_layer+1):
+            if direction == 'left':
+                layer_edges[layer][direction] = edge - GRID_SIZE
+            else:
+                layer_edges[layer][direction] = edge + GRID_SIZE
+
+        return layer_edges
+
     def _connect_black_box(self, comp_from, comp_to, comp_from_output, comp_to_input, reverse):
         self._add_component(comp_from)
         self._add_component(comp_to)
@@ -288,14 +299,6 @@ class Machine:
         assert(comp.get_uuid() == -1)
         comp.assign_uuid(self.uuid_counter)
         self.uuid_counter += 1
-
-    def _change_layer_edges(self, layer_edges, start_layer, end_layer, direction, edge):
-        assert(direction == 'left' or direction == 'right')
-        for layer in range(start_layer, end_layer+1):
-            if direction == 'left':
-                layer_edges[layer][direction] = edge - GRID_SIZE
-            else:
-                layer_edges[layer][direction] = edge + GRID_SIZE
     
     def _detect_collisions(self, x0, y0, x1, y1):
         for comp_uuid in self.components:
@@ -303,15 +306,22 @@ class Machine:
                 return True
         return False
 
-    def _draw_connection_around(self, canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final):
+    def _draw_connection_around(self, canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final, is_reverse):
+        if not is_reverse:
+            start_layer = start_layer + 1
+            end_layer = end_layer - 1
+        if start_layer > end_layer:
+            temp_start = start_layer
+            start_layer = end_layer
+            end_layer = temp_start
         if x0 <= middle_x:
             direction = 'left'
             widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, direction) - GRID_SIZE
-            self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
+            layer_edges = self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
         else:
             direction = 'right'
             widest_edge = self._get_widest_layer_edge(layer_edges, start_layer, end_layer, direction) + GRID_SIZE
-            self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
+            layer_edges = self._change_layer_edges(layer_edges, start_layer, end_layer, direction, widest_edge)
         above_y = 1/(layer_horizontals[end_layer]['above'][direction] + 1)*LAYER_GAP/2
         below_y = 1/(layer_horizontals[start_layer]['below'][direction] + 1)*LAYER_GAP/2
         layer_horizontals[end_layer]['above'][direction] += 1
@@ -321,6 +331,7 @@ class Machine:
         canvas.create_line(widest_edge, y0 + below_y, widest_edge, y_final - above_y)
         canvas.create_line(widest_edge, y_final - above_y, x_final, y_final - above_y)
         canvas.create_line(x_final, y_final - above_y, x_final, y_final, arrow=LAST)
+        return layer_edges
 
     def _draw_connections(self, canvas, middle_x):
         layer_widths = self._get_layer_widths()
@@ -343,12 +354,12 @@ class Machine:
                 if pair.reverse:
                     start_layer = self.comp_layers[pair.comp_from_uuid]
                     end_layer = self.comp_layers[pair.comp_to_uuid]
-                    self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final)
+                    layer_edges = self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final, True)
                 else:
                     if self._detect_collisions(x0, y0, x_final, y_final):
                         start_layer = self.comp_layers[pair.comp_from_uuid]
                         end_layer = self.comp_layers[pair.comp_to_uuid]
-                        self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final)
+                        layer_edges = self._draw_connection_around(canvas, middle_x, layer_edges, layer_horizontals, start_layer, end_layer, x0, y0, x_final, y_final, False)
                     else:
                         canvas.create_line(x0, y0, x_final, y_final, arrow=LAST)
                 connections_drawn.append(pair)
@@ -439,10 +450,6 @@ class Machine:
 
     def _get_widest_layer_edge(self, layer_edges, start_layer, end_layer, direction):
         assert(direction == 'left' or direction == 'right')
-        if start_layer > end_layer:
-            temp_start = start_layer
-            start_layer = end_layer
-            end_layer = temp_start
 
         if direction == 'left':
             widest = 1000000
@@ -527,7 +534,7 @@ class Machine:
             canv_height = max(10000, canv_height)
             assert(self.root is not None)
             canvas = self._create_canvas(canv_width, canv_height)
-            middle_x = canv_width/2
+            middle_x = canv_width/2 + 200
             start_y = LAYER_GAP
         else:
             assert(x > 0)
