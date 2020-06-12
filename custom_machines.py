@@ -28,7 +28,7 @@ class And(BlackBox):
 class Binary4Bit(BlackBox):
     def __init__(self, show_all=False):
         super().__init__(show_all=show_all)
-        self.name = 'Binary'
+        self.name = 'To 4-Bit\nBinary'
 
         sub1 = SubIfGreaterEqual(show_all=show_all)
         sub2 = SubIfGreaterEqual(show_all=show_all)
@@ -50,6 +50,32 @@ class Binary4Bit(BlackBox):
             Connection(io3, sub3, comp_to_input=1),
             Connection(sub3, sub4, comp_from_output=1),
             Connection(io4, sub4, comp_to_input=1)
+        ]
+
+##############################################################################################################################
+class BinaryRelease4(BlackBox):
+    def __init__(self, show_all=False):
+        super().__init__(show_all=show_all)
+        self.name = '4-Bit\nRelease'
+
+        rort1 = ReleaseOrThru(show_all=show_all)
+        rort2 = ReleaseOrThru(show_all=show_all)
+        rort3 = ReleaseOrThru(show_all=show_all)
+        rort4 = ReleaseOrThru(show_all=show_all)
+
+        self.inputs = [(rort4, 0), (rort3, 0), (rort2, 0), (rort1, 0), (rort1, 1)]
+        self.outputs = [(rort4, 1), (rort4, 0), (rort3, 0), (rort2, 0), (rort1, 0)]
+
+        self.connections = [
+            Connection(rort1, rort2, comp_from_output=0, comp_to_input=1, reverse=True),
+            Connection(rort2, rort3, comp_from_output=0, comp_to_input=1, reverse=True),
+            Connection(rort3, rort4, comp_from_output=0, comp_to_input=1, reverse=True)
+        ]
+
+        self.shared_layers = [
+            SharedLayer(rort1, rort2),
+            SharedLayer(rort2, rort3),
+            SharedLayer(rort3, rort4),
         ]
 
 ##############################################################################################################################
@@ -96,6 +122,91 @@ class Equals(BlackBox):
         ]
 
 ##############################################################################################################################
+class Eq2or3(BlackBox):
+    def __init__(self, show_all=False):
+        super().__init__(show_all=show_all)
+        self.name = '= 2 or 3'
+
+        in2 = IO(balls=['blue']*2)
+        in3 = IO(balls=['blue']*3)
+
+        r1 = Replacer(['all'], ['red', 'blue'])
+        s1 = Sorter([('red',), ('blue',)])
+        eq2 = Equals(show_all=show_all)
+        eq3 = Equals(show_all=show_all)
+        or_block = Or(show_all=show_all)
+
+        self.inputs = [(r1, 0)]
+        self.outputs = [(or_block, 0)]
+
+        self.connections = [
+            Connection(r1, s1),
+            Connection(in2, eq2),
+            Connection(s1, eq2, comp_to_input=1),
+            Connection(s1, eq3, comp_from_output=1),
+            Connection(in3, eq3, comp_to_input=1),
+            Connection(eq2, or_block),
+            Connection(eq3, or_block, comp_to_input=1),
+        ]
+
+        self.shared_layers = [
+            SharedLayer(in2, s1),
+            SharedLayer(s1, in3)
+        ]
+
+##############################################################################################################################
+class FSMIsOdd(BlackBox):
+    def __init__(self, show_all=False):
+        super().__init__(show_all=show_all)
+        self.name = 'FSM Is Odd'
+
+        io1 = IO(balls=['red'])
+        to_bin = Binary4Bit(show_all=show_all)
+        br4 = BinaryRelease4(show_all=show_all)
+        r0 = Replacer(['all'], ['dark green'])
+        s1 = Sorter([('blue', 'purple'), ('red', 'dark green'), ('red',), ('blue', 'dark green'), ('blue',)])
+        s2 = Sorter([('red',), ('blue',), ('purple',)])
+        r1 = Replacer(['red', 'dark green'], ['blue', 'purple'])
+        r2 = Replacer(['red'], ['red', 'purple'])
+        r3 = Replacer(['blue', 'dark green'], ['blue', 'purple'])
+        r4 = Replacer(['blue'], ['red', 'purple'])
+        r5 = Replacer(['all'], ['purple'])
+
+        self.inputs = [(to_bin, 0)]
+        self.outputs = [(s1, 0)]
+
+        self.connections = [
+            Connection(to_bin, br4, comp_from_output=0, comp_to_input=0),
+            Connection(to_bin, br4, comp_from_output=1, comp_to_input=1),
+            Connection(to_bin, br4, comp_from_output=2, comp_to_input=2),
+            Connection(to_bin, br4, comp_from_output=3, comp_to_input=3),
+            Connection(io1, s1),
+            Connection(br4, r5, comp_from_output=0),
+            Connection(br4, r0, comp_from_output=1),
+            Connection(br4, r0, comp_from_output=2),
+            Connection(br4, r0, comp_from_output=3),
+            Connection(br4, r0, comp_from_output=4),
+            Connection(r0, s1),
+            Connection(r5, s1),
+            Connection(s1, r1, comp_from_output=1),
+            Connection(s1, r2, comp_from_output=2),
+            Connection(s1, r3, comp_from_output=3),
+            Connection(s1, r4, comp_from_output=4),
+            Connection(r1, s2),
+            Connection(r2, s2),
+            Connection(r3, s2),
+            Connection(r4, s2),
+            Connection(s2, s1, comp_from_output=0, reverse=True),
+            Connection(s2, s1, comp_from_output=1, reverse=True),
+            Connection(s2, br4, comp_from_output=2, comp_to_input=4, reverse=True),
+        ]
+
+        self.shared_layers = [
+            SharedLayer(r0, io1)
+        ]
+
+##############################################################################################################################
+
 class GreaterEqualThan(BlackBox):
     def __init__(self, show_all=False):
         super().__init__(show_all=show_all)
@@ -108,7 +219,6 @@ class GreaterEqualThan(BlackBox):
         greater = GreaterThan(show_all=show_all)
         equal = Equals(show_all=show_all)
         or_block = Or(show_all=show_all)
-
 
         self.inputs = [(r1, 0), (r2, 0)]
         self.outputs = [(or_block, 0)]
@@ -153,7 +263,7 @@ class Hold(BlackBox):
 
         r1 = Replacer(['all'], ['red', 'blue'])
         s1 = Sorter([('red',), ('blue',)])
-        mult = Multiply(show_all=show_all)
+        mult = Multiply(show_all=False)
         r2 = Replacer(['all'], ['blue'])
         s2 = Sorter([('red', 'blue')])
         r3 = Replacer(['red', 'blue'], ['red'])
@@ -342,16 +452,46 @@ class Plus1Div2(BlackBox):
             Connection(s1, r2)
         ]
 
+
+##############################################################################################################################
+class ReleaseOrThru(BlackBox):
+    def __init__(self, show_all=False):
+        super().__init__(show_all=show_all)
+        self.name = 'Release or Thru'
+
+        tobool = ToBool(show_all=show_all)
+        hold = Hold(show_all=show_all)
+        r1 = Replacer(['all'], ['red', 'blue'])
+        s1 = Sorter([('red', 'dark green'), ('blue',)])
+        s2 = Sorter([('red', 'blue', 'blue')])
+        s3 = Sorter([('red', 'blue'), ('blue',)])
+        io1 = IO(balls=['dark green'])
+        io2 = IO(balls=['red'])
+
+        self.inputs = [(hold, 0), (tobool, 0)]
+        self.outputs = [(hold, 0), (s3, 1)]
+
+        self.connections = [
+            Connection(tobool, r1),
+            Connection(r1, s1),
+            Connection(io1, s1),
+            Connection(s1, hold, comp_to_input=1),
+            Connection(s1, s2, comp_from_output=1),
+            Connection(io2, s2),
+            Connection(s2, s3),
+            Connection(s3, s2, reverse=True)
+        ]
+
 ##############################################################################################################################
 class Sort_2(BlackBox):
     def __init__(self, show_all=False):
         super().__init__(show_all=show_all)
         self.name = 'Sort 2'
 
-        r1 = Replacer(['all'], ['red', 'blue'], name=f'{self.name} r1')
-        r2 = Replacer(['all'], ['red', 'blue'], name=f'{self.name} r2')
-        s1 = Sorter([('red',), ('blue',)], name=f'{self.name} s1')
-        s2 = Sorter([('red',), ('blue',)], name=f'{self.name} s2')
+        r1 = Replacer(['all'], ['red', 'blue'])
+        r2 = Replacer(['all'], ['red', 'blue'])
+        s1 = Sorter([('red',), ('blue',)])
+        s2 = Sorter([('red',), ('blue',)])
         min_block = Min(show_all=show_all)
         max_block = Max(show_all=show_all)
 
@@ -524,9 +664,12 @@ class ToBool(BlackBox):
 ##############################################################################################################################
 __all__ = {
     'And': And,
+    'BinaryRelease4': BinaryRelease4,
     'Binary4Bit': Binary4Bit,
     'Decrement': Decrement,
     'Equals': Equals,
+    'Eq2or3': Eq2or3,
+    'FSMIsOdd': FSMIsOdd,
     'GreaterThan': GreaterThan,
     'GreaterEqualThan': GreaterEqualThan,
     'Hold': Hold,
@@ -538,6 +681,7 @@ __all__ = {
     'Not': Not,
     'Or': Or,
     'Plus1Div2': Plus1Div2,
+    'ReleaseOrThru': ReleaseOrThru,
     'Sort_2': Sort_2,
     'SubIfGreater': SubIfGreater,
     'SubIfGreaterEqual': SubIfGreaterEqual,
