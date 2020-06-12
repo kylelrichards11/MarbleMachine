@@ -38,6 +38,7 @@ class BlackBox(Component):
         super().__init__(name)
         self.show_all = show_all
         self.shared_layers = []
+        self.scale = 3
 
     def __str__(self):
         return f"Black Box {self.name}"
@@ -46,16 +47,16 @@ class BlackBox(Component):
         self.x = x
         self.y = y
         if not self.show_all:
-            Rectangle(3*GRID_SIZE, 3*GRID_SIZE, fill_color='black').draw(canvas, x, y)
+            Rectangle(self.scale*GRID_SIZE, self.scale*GRID_SIZE, fill_color='black').draw(canvas, x, y)
             canvas.create_text(x, y, fill='white', text=self.name)
 
     def get_width(self):
         assert(not self.show_all)
-        return 3*GRID_SIZE
+        return self.scale*GRID_SIZE
 
     def get_height(self):
         assert(not self.show_all)
-        return 3*GRID_SIZE
+        return self.scale*GRID_SIZE
 
     def get_input_coords(self, input_num):
         assert(self.x > -1)
@@ -65,7 +66,7 @@ class BlackBox(Component):
         num_inputs = len(self.inputs)
         input_spacing = self.get_width()/(num_inputs + 1)
         left_x = self.x - self.get_width()/2
-        return left_x + (input_num+1)*input_spacing, self.y - 1.5*GRID_SIZE
+        return left_x + (input_num+1)*input_spacing, self.y - self.scale/2*GRID_SIZE
 
     def get_output_coords(self, output_num):
         assert(self.x > -1)
@@ -75,7 +76,7 @@ class BlackBox(Component):
         num_outputs = len(self.outputs)
         output_spacing = self.get_width()/(num_outputs + 1)
         left_x = self.x - self.get_width()/2
-        return left_x + (output_num+1)*output_spacing, self.y + 1.5*GRID_SIZE
+        return left_x + (output_num+1)*output_spacing, self.y + self.scale/2*GRID_SIZE
 
     def get_connections(self):
         return self.connections
